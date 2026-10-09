@@ -1,0 +1,19 @@
+{
+  "name": "parental-leave-calc",
+  "version": "1.0.0",
+  "description": "대한민국 육아휴직 급여 및 6+6 부모육아휴직제 공식 계산기 (2026)",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "육아휴직",
+    "육아휴직급여",
+    "6+6부모육아휴직제",
+    "고용보험",
+    "부모함께육아휴직제"
+  ],
+  "author": "bangsuhyoek",
+  "license": "MIT"
+}
+

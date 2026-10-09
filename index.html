@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>육아휴직 급여 계산기 2026 | 6+6 부모함께육아휴직 차액 정산</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="2026년 최신 고용보험법 개정 기준 육아휴직 급여 계산기. 6+6 부모함께육아휴직제 상한액(250만~450만원), 순차 사용 시 소급 정산 차액, 부부 가구 합산 수령액, 한부모 특례까지 완벽 지원.">
+  <meta name="keywords" content="육아휴직 급여 계산기, 6+6 부모육아휴직제, 부모함께육아휴직제, 육아휴직 소급정산, 2026 육아휴직, 고용보험, 한부모 육아휴직">
+  <meta name="author" content="bangsuhyoek">
+  <link rel="canonical" href="https://bangsuhyoek.github.io/parental-leave-calc/">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bangsuhyoek.github.io/parental-leave-calc/">
+  <meta property="og:title" content="육아휴직 급여 계산기 2026 | 6+6 부모함께육아휴직 차액 정산">
+  <meta property="og:description" content="부부 합산 실수령액, 순차 사용 시 소급 정산 차액, 1~18개월 월차별 급여 상한액표를 무료로 바로 시뮬레이션하세요.">
+  <meta property="og:image" content="https://bangsuhyoek.github.io/parental-leave-calc/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="ko_KR">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://bangsuhyoek.github.io/parental-leave-calc/">
+  <meta name="twitter:title" content="육아휴직 급여 계산기 2026 | 6+6 부모함께육아휴직 차액 정산">
+  <meta name="twitter:description" content="2026년 최신 법령 반영! 6+6 부모육아휴직제 월별 상한액 및 소급 정산 차액 시뮬레이터.">
+  <meta name="twitter:image" content="https://bangsuhyoek.github.io/parental-leave-calc/og-image.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header Hero -->
+  <header class="header-hero">
+    <div class="header-container">
+      <div class="hero-badge">
+        <span>법령 검증 완료</span> • 2025년 1월 시행 (2025.02.23 상한 인상 반영), 2026년 10월 확인
+      </div>
+      <h1 class="hero-title">육아휴직 급여 계산기 (2026)</h1>
+      <p class="hero-subtitle">
+        6+6 부모함께육아휴직제 상한액 체계, 순차 사용 시 첫 번째 부모의 소급 정산 차액, 부부 가구 합산 수령액을 공식 산식으로 정밀 계산합니다.
+      </p>
+      <div class="hero-citation">
+        고용보험법 시행령 제95조·제95조의3 기준 | 사후지급금 폐지(100% 전액 지급) 반영
+      </div>
+    </div>
+  </header>
+
+  <main class="main-wrapper">
+    <!-- Mode Selector Tabs -->
+    <section class="mode-tabs" aria-label="신청 유형 선택">
+      <label class="mode-tab-label">
+        <input type="radio" name="mode" value="couple" checked>
+        <span class="tab-title">부부 함께 (6+6 특례)</span>
+        <span class="tab-desc">부모 모두 휴직 시 최대 4,500만원</span>
+      </label>
+      <label class="mode-tab-label">
+        <input type="radio" name="mode" value="single">
+        <span class="tab-title">한부모 근로자 특례</span>
+        <span class="tab-desc">1~3개월 상한 300만원 특례</span>
+      </label>
+      <label class="mode-tab-label">
+        <input type="radio" name="mode" value="solo">
+        <span class="tab-title">혼자 사용 (배우자 미사용)</span>
+        <span class="tab-desc">일반 규정 (상한 250만/200만/160만)</span>
+      </label>
+    </section>
+
+    <!-- Child Birth Date Input -->
+    <section class="card" aria-labelledby="childInfoHeading">
+      <h2 id="childInfoHeading" class="card-title">
+        <span>자녀 정보 (6+6 적용 요건 확인)</span>
+      </h2>
+      <div class="form-group">
+        <label for="childBirthDate" class="form-label">자녀 생년월일</label>
+        <input type="date" id="childBirthDate" class="form-input" style="max-width: 280px;">
+        <p class="help-text" id="childDeadlineText" style="display: none; color: var(--primary); font-weight: 600;"></p>
+        <p class="help-text">※ 6+6 부모함께육아휴직제는 <strong>각 부모의 육아휴직 시작일이 자녀 생후 18개월 이내</strong>여야 적용됩니다.</p>
+      </div>
+    </section>
+
+    <!-- Parents Input Grid -->
+    <div class="input-grid input-grid-2cols">
+      <!-- Parent 1 Card -->
+      <section class="card" aria-labelledby="parent1Title">
+        <h2 id="parent1Title" class="card-title">부모 1 (엄마/선사용)</h2>
+
+        <div class="form-group">
+          <label for="wage1" class="form-label">
+            월 통상임금 <span id="wage1Preview" class="input-preview"></span>
+          </label>
+          <input type="text" id="wage1" class="form-input" placeholder="예: 3,500,000" inputmode="numeric">
+          <div class="quick-btns">
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="2500000">250만</button>
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="3000000">300만</button>
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="4000000">400만</button>
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="5000000">500만</button>
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="+500000">+50만</button>
+          </div>
+          <p class="help-text">기본급 + 고정수당 등 근로기준법상 월 통상임금</p>
+        </div>
+
+        <div class="form-group" style="margin-top: 18px;">
+          <label for="startDate1" class="form-label">휴직 시작일</label>
+          <input type="date" id="startDate1" class="form-input">
+        </div>
+
+        <div class="form-group" style="margin-top: 18px;">
+          <label for="months1Slider" class="form-label">휴직 기간 (개월)</label>
+          <div class="range-group">
+            <input type="range" id="months1Slider" class="form-range" min="1" max="18" value="12">
+            <input type="number" id="months1Number" class="number-stepper" min="1" max="18" value="12">
+          </div>
+          <p class="help-text">부모 모두 3개월 이상 사용 시 최장 18개월(1년 6개월)까지 가능</p>
+        </div>
+      </section>
+
+      <!-- Parent 2 Card -->
+      <section class="card" id="parent2Card" aria-labelledby="parent2Title">
+        <h2 id="parent2Title" class="card-title">부모 2 (아빠/후사용)</h2>
+
+        <div class="form-group">
+          <label for="wage2" class="form-label">
+            월 통상임금 <span id="wage2Preview" class="input-preview"></span>
+          </label>
+          <input type="text" id="wage2" class="form-input" placeholder="예: 3,500,000" inputmode="numeric">
+          <div class="quick-btns">
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="2500000">250만</button>
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="3000000">300만</button>
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="4000000">400만</button>
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="5000000">500만</button>
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="+500000">+50만</button>
+          </div>
+          <p class="help-text">기본급 + 고정수당 등 근로기준법상 월 통상임금</p>
+        </div>
+
+        <div class="form-group" style="margin-top: 18px;">
+          <label for="startDate2" class="form-label">휴직 시작일</label>
+          <input type="date" id="startDate2" class="form-input">
+        </div>
+
+        <div class="form-group" style="margin-top: 18px;">
+          <label for="months2Slider" class="form-label">휴직 기간 (개월)</label>
+          <div class="range-group">
+            <input type="range" id="months2Slider" class="form-range" min="1" max="18" value="12">
+            <input type="number" id="months2Number" class="number-stepper" min="1" max="18" value="12">
+          </div>
+          <p class="help-text">순차 사용 시 첫 번째 부모의 차액이 두 번째 부모 신청 시점에 소급 정산됩니다.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Eligibility Verdict Banner -->
+    <section class="verdict-box" aria-live="polite">
+      <div id="verdictBadge" class="badge badge-success">
+        <span>✔</span> 6+6 부모함께육아휴직제 적용
+      </div>
+      <ul id="verdictReasons" class="reasons-list"></ul>
+    </section>
+
+    <!-- Key Metrics Grid -->
+    <section class="summary-grid summary-grid-3cols" aria-label="급여 요약 지표">
+      <div class="stat-card stat-card-highlight">
+        <span class="stat-label">가구 총 수령액 (합계)</span>
+        <span id="householdTotal" class="stat-value text-primary">0원</span>
+        <span class="stat-desc">전체 휴직 기간 동안 지급되는 급여 총합</span>
+      </div>
+
+      <div class="stat-card" id="benefitGainCard">
+        <span class="stat-label">6+6 특례 추가 수령액 (일반 대비)</span>
+        <span id="benefitGain" class="stat-value text-gain">+0원</span>
+        <span class="stat-desc">일반 육아휴직 대비 부부가 더 받는 추가 지원금</span>
+      </div>
+
+      <div class="stat-card" id="parent1SummaryCard">
+        <span class="stat-label">부모 1 최종 수령액</span>
+        <span id="parent1Total" class="stat-value">0원</span>
+        <span class="stat-desc">소급 정산 차액 포함 합계</span>
+      </div>
+
+      <div class="stat-card" id="parent2SummarySection">
+        <span class="stat-label">부모 2 최종 수령액</span>
+        <span id="parent2Total" class="stat-value">0원</span>
+        <span class="stat-desc">휴직 기간 동안 매월 지급</span>
+      </div>
+    </section>
+
+    <!-- Sequential Retroactive Top-up Card -->
+    <section class="retro-card" id="topUpContainer" style="display: none;" aria-label="순차 사용 시 소급 정산 안내">
+      <h3 class="retro-title">
+        <span>💡</span> 순차 사용 시 첫 번째 부모 소급 정산(Retroactive Top-up) 안내
+      </h3>
+      <p style="font-size: 0.88rem; color: #166534; margin-bottom: 12px; word-break: keep-all;">
+        첫 번째 부모는 휴직 중 일반 육아휴직 급여 기준(상한 250만/200만원)으로 매월 지급받다가, <strong>두 번째 부모가 육아휴직 급여를 신청하는 시점에 6+6 특례 상한액과의 차액을 일괄 소급 수령</strong>합니다.
+      </p>
+      <div class="retro-grid">
+        <div class="retro-item">
+          <span class="retro-item-label">첫 번째 부모 휴직 중 받는 금액</span>
+          <div id="firstParentLeave" class="retro-item-val">0원</div>
+        </div>
+        <div class="retro-item">
+          <span class="retro-item-label">두 번째 부모 신청 시 소급 정산되는 차액</span>
+          <div id="retroactiveTopUp" class="retro-item-val text-gain">+0원</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comp-card" id="comparisonSection" aria-label="6+6 특례 vs 일반 육아휴직 비교">
+      <h3 class="card-title">6+6 부모육아휴직 vs 일반 육아휴직 비교</h3>
+      <div class="bar-wrapper">
+        <div class="bar-row">
+          <span class="bar-title">6+6 특례 적용 시</span>
+          <div class="bar-track">
+            <div id="compSpecialBar" class="bar-fill bar-fill-special" style="width: 100%;"></div>
+          </div>
+          <span id="compSpecialText" class="bar-amt">0원</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-title">일반 육아휴직 시</span>
+          <div class="bar-track">
+            <div id="compNormalBar" class="bar-fill bar-fill-normal" style="width: 70%;"></div>
+          </div>
+          <span id="compNormalText" class="bar-amt">0원</span>
+        </div>
+      </div>
+      <p id="compDiffText" class="help-text" style="font-size: 0.9rem; color: var(--slate-700); margin-top: 8px;"></p>
+    </section>
+
+    <!-- Month-by-Month Schedules -->
+    <section class="card" aria-label="부모 1 월차별 급여 상세 내역">
+      <h3 class="card-title">부모 1 월차별 급여 내역</h3>
+      <div class="table-container">
+        <table class="schedule-table">
+          <thead>
+            <tr>
+              <th class="text-center">월차</th>
+              <th>적용 기준</th>
+              <th class="text-right">월 상한액</th>
+              <th class="text-right">최종 지급액</th>
+              <th class="text-center">지급 형태 (순차 사용 시)</th>
+            </tr>
+          </thead>
+          <tbody id="parent1ScheduleBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" id="parent2ScheduleCard" aria-label="부모 2 월차별 급여 상세 내역">
+      <h3 class="card-title">부모 2 월차별 급여 내역</h3>
+      <div class="table-container">
+        <table class="schedule-table">
+          <thead>
+            <tr>
+              <th class="text-center">월차</th>
+              <th>적용 기준</th>
+              <th class="text-right">월 상한액</th>
+              <th class="text-right">최종 지급액</th>
+              <th class="text-center">지급 형태</th>
+            </tr>
+          </thead>
+          <tbody id="parent2ScheduleBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Share Link Button -->
+    <div class="share-bar">
+      <button type="button" id="copyLinkBtn" class="btn-primary">
+        <span>🔗</span> 결과 링크 복사하기 (배우자에게 공유)
+      </button>
+    </div>
+
+    <!-- Assumptions & Disclaimers -->
+    <section class="disclaimer-box" aria-label="주의사항 및 법령 기준">
+      <p><strong>📌 계산기 산정 기준 및 주의사항</strong></p>
+      <ul style="padding-left: 20px; margin-top: 6px;">
+        <li><strong>산정 주기:</strong> 본 계산기는 1개월 단위 전액 지급을 기준으로 산정합니다. 실제 1개월 미만의 중도 시작/종료 일수는 일할 계산(日割計算)됩니다.</li>
+        <li><strong>사후지급금 폐지:</strong> 2024년까지 적용되던 사후지급금(급여의 25%를 복직 6개월 후 지급) 제도는 2025년 1월 1일부로 전면 폐지되었으며, 휴직 중 매월 100% 전액 지급됩니다.</li>
+        <li><strong>법령 기준일:</strong> 2025년 1월 1일 시행(2025.02.23 상한 인상 반영), 2026년 10월 확인 기준 고용보험법 시행령 제95조 및 제95조의3 규정입니다.</li>
+        <li><strong>참고용 모의계산:</strong> 본 결과는 모의계산용이며, 실제 급여 수급 자격 및 지급액은 <a href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer">고용24(work24.go.kr)</a> 및 관할 고용센터 심사 기준에 따릅니다.</li>
+      </ul>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section" aria-label="자주 묻는 질문 FAQ">
+      <h2 class="faq-header">자주 묻는 질문 (FAQ)</h2>
+
+      <details class="faq-item" open>
+        <summary class="faq-question">
+          <span>Q1. 6+6 부모함께육아휴직제의 자격 요건은 어떻게 되나요?</span>
+          <span>▼</span>
+        </summary>
+        <div class="faq-answer">
+          <p>같은 자녀에 대해 부모가 모두 육아휴직을 사용하는 경우 적용됩니다. 핵심 요건은 다음과 같습니다:</p>
+          <ul>
+            <li><strong>자녀 연령 요건:</strong> 자녀 출생 후 <strong>생후 18개월 이내에 부모 각각의 육아휴직이 시작</strong>되어야 합니다 (부모 중 한 명이라도 18개월 도래일 이후에 시작하면 6+6 특례가 적용되지 않고 일반 규정이 적용됩니다).</li>
+            <li><strong>사용 방식:</strong> 부모가 동시에 휴직하거나, 순차적으로 나누어 사용해도 모두 인정됩니다.</li>
+            <li><strong>지급 기간:</strong> 부모 각각의 육아휴직 기간 중 <strong>첫 6개월</strong>까지 적용되며, 7개월차부터는 일반 육아휴직 급여 규정이 적용됩니다.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Q2. 6+6 특례 월별 상한액은 얼마인가요? (2025.02.23 개정 반영)</span>
+          <span>▼</span>
+        </summary>
+        <div class="faq-answer">
+          <p>통상임금의 100%를 지급하며, 월차별 상한액은 다음과 같습니다:</p>
+          <ul>
+            <li><strong>1개월차:</strong> 월 상한 <strong>250만원</strong> (※ 2025년 2월 23일 개정으로 종전 200만원에서 일반 상한과 동일한 250만원으로 인상)</li>
+            <li><strong>2개월차:</strong> 월 상한 <strong>250만원</strong></li>
+            <li><strong>3개월차:</strong> 월 상한 <strong>300만원</strong></li>
+            <li><strong>4개월차:</strong> 월 상한 <strong>350만원</strong></li>
+            <li><strong>5개월차:</strong> 월 상한 <strong>400만원</strong></li>
+            <li><strong>6개월차:</strong> 월 상한 <strong>450만원</strong></li>
+          </ul>
+          <p>부모 모두 월 통상임금이 450만원 이상인 경우, 6개월간 1인당 최대 2,000만원, 부부 합산 <strong>최대 4,000만원</strong>을 수령할 수 있습니다.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Q3. 부부가 동시에 쉬지 않고 순차적으로 사용하면 소급 정산은 어떻게 되나요?</span>
+          <span>▼</span>
+        </summary>
+        <div class="faq-answer">
+          <p>첫 번째로 육아휴직을 사용하는 부모는 두 번째 부모가 아직 신청하지 않은 상태이므로 우선 <strong>일반 육아휴직 급여(1~3개월 상한 250만, 4~6개월 상한 200만)</strong>를 매월 지급받습니다.</p>
+          <p>이후 두 번째 부모가 자녀 생후 18개월 이내에 육아휴직을 시작하고 급여를 신청하면, 6+6 특례 요건이 충족되면서 <strong>첫 번째 부모가 이미 수령한 개월에 대한 6+6 특례 상한액과의 차액을 소급하여 일괄 지급</strong>받게 됩니다.</p>
+          <p>예를 들어 통상임금 500만원인 부부가 순차적으로 각 6개월을 쓸 경우, 첫 번째 부모는 휴직 중 1,350만원을 수령한 뒤 두 번째 부모 신청 시점에 <strong>차액 650만원을 소급 수령</strong>하여 총 2,000만원을 정산받습니다.</p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Q4. 부모의 휴직 기간이 다른 경우(예: 엄마 6개월, 아빠 3개월)에는 몇 개월까지 특례가 적용되나요?</span>
+          <span>▼</span>
+        </summary>
+        <div class="faq-answer">
+          <p>고용노동부 공식 행정해석에 따라, 6+6 특례 상한액은 <strong>부모 양쪽이 모두 육아휴직을 사용한 공통 기간(specialMonths = min(6, 기간A, 기간B))</strong>에 대해서만 적용됩니다.</p>
+          <p>예를 들어 엄마가 6개월, 아빠가 3개월을 사용하는 경우:</p>
+          <ul>
+            <li>엄마와 아빠 모두 <strong>1~3개월차(공통 3개월)</strong>에 대해서만 6+6 특례 상한액(250만 / 250만 / 300만원)이 적용됩니다.</li>
+            <li>엄마의 4~6개월차는 6+6 특례가 아닌 <strong>일반 육아휴직 급여 규정(4~6개월차 상한 200만원)</strong>이 적용됩니다.</li>
+          </ul>
+          <p>공식 출처: <a href="https://1350.moel.go.kr/rtmview.do?id=1000292284" target="_blank" rel="noopener noreferrer">고용노동부 1350 6+6부모함께육아휴직제 급여 안내</a></p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Q5. 한부모 근로자 육아휴직 급여 특례는 어떻게 되나요?</span>
+          <span>▼</span>
+        </summary>
+        <div class="faq-answer">
+          <p>「한부모가족지원법」 제4조제1호에 따른 한부모 근로자는 고용보험법 시행령 제95조의3 제3항에 따라 첫 3개월간 특례가 적용됩니다:</p>
+          <ul>
+            <li><strong>1~3개월차:</strong> 통상임금의 100%, <strong>월 상한 300만원</strong> (일반 250만원보다 50만원 상향)</li>
+            <li><strong>4~6개월차:</strong> 통상임금의 100%, 월 상한 200만원</li>
+            <li><strong>7개월차 이후:</strong> 통상임금의 80%, 월 상한 160만원</li>
+            <li><strong>하한액:</strong> 전 기간 월 70만원</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Q6. 사후지급금 제도는 정말 폐지되었나요?</span>
+          <span>▼</span>
+        </summary>
+        <div class="faq-answer">
+          <p>네, 맞습니다. 종전에는 복직 후 계속 근로를 유도하기 위해 급여의 25%를 공제한 뒤 복직 6개월 후에 지급하는 '사후지급금' 제도가 있었으나, <strong>2025년 1월 1일부로 전면 폐지</strong>되었습니다.</p>
+          <p>따라서 현재는 육아휴직 기간 동안 산정된 급여 전액(100%)을 매월 그대로 지급받습니다.</p>
+          <p>공식 출처: <a href="https://1350.moel.go.kr/rtmview.do?id=1000325546" target="_blank" rel="noopener noreferrer">고용노동부 1350 일반 육아휴직 급여 안내</a></p>
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">
+          <span>Q7. 육아휴직 기간이 1년 6개월(18개월)까지 늘어났다는데 사실인가요?</span>
+          <span>▼</span>
+        </summary>
+        <div class="faq-answer">
+          <p>남녀고용평등법 개정에 따라, <strong>부모가 모두 3개월 이상 육아휴직을 사용하는 경우</strong> 부모 각각 최대 1년 6개월(18개월)까지 육아휴직을 사용할 수 있습니다. 한부모 근로자 역시 최대 18개월까지 사용 가능합니다.</p>
+          <p>다만 고용보험 급여 지원의 경우, 7개월차부터 18개월차까지는 동일하게 통상임금의 80%(월 상한 160만원)가 적용됩니다.</p>
+        </div>
+      </details>
+
+      <div style="margin-top: 24px; padding: 16px; background: var(--slate-50); border-radius: 8px; font-size: 0.85rem; color: var(--slate-600);">
+        <strong style="color: var(--slate-800);">🔗 공식 정부 안내 및 모의계산 바로가기:</strong>
+        <ul style="margin-top: 6px; padding-left: 18px;">
+          <li><a href="https://m.work24.go.kr/cm/c/f/1100/selecSystInfo.do?systClId=SC00000251&systId=SI00000402" target="_blank" rel="noopener noreferrer">고용24 부모 함께 육아휴직제(6+6) 상세 제도 안내</a></li>
+          <li><a href="https://1350.moel.go.kr/rtmview.do?id=1000292284" target="_blank" rel="noopener noreferrer">고용노동부 고객상담센터(1350) 6+6부모함께육아휴직제 급여 상세</a></li>
+          <li><a href="https://1350.moel.go.kr/rtmview.do?id=1000325546" target="_blank" rel="noopener noreferrer">고용노동부 고객상담센터(1350) 일반 육아휴직급여 안내</a></li>
+          <li><a href="https://1350.moel.go.kr/rtmview.do?id=1000296162" target="_blank" rel="noopener noreferrer">고용노동부 고객상담센터(1350) 육아휴직 급여 수급 자격 Q&A</a></li>
+          <li><a href="https://1350.moel.go.kr/rtmview.do?id=1000303638" target="_blank" rel="noopener noreferrer">고용노동부 고객상담센터(1350) 부모 순차 사용 시 급여 특례</a></li>
+          <li><a href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer">고용24 공식 포털 (work24.go.kr)</a></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="header-container">
+      <p>© 2026 bangsuhyoek. MIT License. 대한민국 육아휴직 급여 및 6+6 부모함께육아휴직 계산기.</p>
+      <p style="margin-top: 6px;">
+        본 서비스는 고용보험법 및 고용노동부 행정해석에 기반한 비영리 오픈소스 모의계산 도구입니다.
+      </p>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" role="status" aria-live="polite">결과 링크가 클립보드에 복사되었습니다!</div>
+
+  <!-- Main ES Module Script -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
+

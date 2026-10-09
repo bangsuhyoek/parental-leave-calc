@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://bangsuhyoek.github.io/parental-leave-calc/sitemap.xml
+
