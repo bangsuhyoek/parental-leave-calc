@@ -483,3 +483,196 @@ export function parseWageInput(input) {
   }
 }
 
+
+
+/**
+ * 월별 가구 급여 입금 타임라인 산정 (순차 사용 시 소급 정산 시점 반영)
+ * @param {Object} result calculateParentalLeave 반환 객체
+ * @param {Object} [options]
+ * @param {string} [options.startA] 'YYYY-MM-DD' 또는 'YYYY-MM'
+ * @param {string} [options.startB] 'YYYY-MM-DD' 또는 'YYYY-MM'
+ * @returns {Object} timeline 데이터
+ */
+export function buildMonthlyTimeline(result, options = {}) {
+  if (!result || !result.parentA) {
+    throw new Error('유효한 계산 결과 객체가 필요합니다.');
+  }
+
+  const startAStr = options.startA || result.parentA.startDate || '2026-01-01';
+  const startBStr = (result.mode === 'couple' && result.parentB)
+    ? (options.startB || result.parentB.startDate || '2026-07-01')
+    : null;
+
+  function parseYM(str) {
+    if (!str || typeof str !== 'string') return { year: 2026, month: 1 };
+    const match = str.match(/^(\d{4})-(\d{2})/);
+    if (!match) return { year: 2026, month: 1 };
+    return { year: parseInt(match[1], 10), month: parseInt(match[2], 10) };
+  }
+
+  function getYMOffset(baseYM, offset) {
+    const totalMonth = (baseYM.month - 1) + offset;
+    const year = baseYM.year + Math.floor(totalMonth / 12);
+    const month = (totalMonth % 12) + 1;
+    return {
+      year,
+      month,
+      monthKey: year + '-' + String(month).padStart(2, '0'),
+      label: String(year).slice(2) + '.' + String(month).padStart(2, '0'),
+      absoluteMonth: year * 12 + month,
+    };
+  }
+
+  const ymA = parseYM(startAStr);
+  const ymB = startBStr ? parseYM(startBStr) : null;
+
+  const monthMap = new Map();
+
+  function getOrCreateMonth(ymInfo) {
+    if (!monthMap.has(ymInfo.monthKey)) {
+      monthMap.set(ymInfo.monthKey, {
+        monthKey: ymInfo.monthKey,
+        label: ymInfo.label,
+        year: ymInfo.year,
+        month: ymInfo.month,
+        absoluteMonth: ymInfo.absoluteMonth,
+        parentA: 0,
+        parentB: 0,
+        retro: 0,
+        total: 0,
+        breakdown: [],
+      });
+    }
+    return monthMap.get(ymInfo.monthKey);
+  }
+
+  const isSeq = result.is6Plus6Eligible && result.isSequential;
+  const pAFirst = isSeq && result.parentA.isFirstParent;
+  const pBFirst = isSeq && result.parentB && result.parentB.isFirstParent;
+
+  // 1. Parent A 월별 급여
+  const monthsA = result.parentA.schedule.length;
+  for (let m = 0; m < monthsA; m++) {
+    const ymInfo = getYMOffset(ymA, m);
+    const item = getOrCreateMonth(ymInfo);
+    const amount = (pAFirst && result.parentA.normalSchedule)
+      ? result.parentA.normalSchedule[m].amount
+      : result.parentA.schedule[m].amount;
+    item.parentA += amount;
+  }
+
+  // 2. Parent B 월별 급여 (부부 모드)
+  if (result.mode === 'couple' && result.parentB) {
+    const monthsB = result.parentB.schedule.length;
+    for (let m = 0; m < monthsB; m++) {
+      const ymInfo = getYMOffset(ymB, m);
+      const item = getOrCreateMonth(ymInfo);
+      const amount = (pBFirst && result.parentB.normalSchedule)
+        ? result.parentB.normalSchedule[m].amount
+        : result.parentB.schedule[m].amount;
+      item.parentB += amount;
+    }
+  }
+
+  // 3. 소급 정산 일괄 입금 (두 번째 부모 첫 급여월 입금 가정)
+  let hasRetro = false;
+  let retroMonthKey = null;
+
+  if (pAFirst && result.parentA.retroactiveTopUp > 0 && ymB) {
+    const retroYM = getYMOffset(ymB, 0);
+    const item = getOrCreateMonth(retroYM);
+    item.retro += result.parentA.retroactiveTopUp;
+    hasRetro = true;
+    retroMonthKey = retroYM.monthKey;
+  } else if (pBFirst && result.parentB.retroactiveTopUp > 0 && ymA) {
+    const retroYM = getYMOffset(ymA, 0);
+    const item = getOrCreateMonth(retroYM);
+    item.retro += result.parentB.retroactiveTopUp;
+    hasRetro = true;
+    retroMonthKey = retroYM.monthKey;
+  }
+
+  // 4. 연속 캘린더 타임라인 생성
+  let minAbs = Infinity;
+  let maxAbs = -Infinity;
+
+  for (const item of monthMap.values()) {
+    if (item.absoluteMonth < minAbs) minAbs = item.absoluteMonth;
+    if (item.absoluteMonth > maxAbs) maxAbs = item.absoluteMonth;
+  }
+
+  const timeline = [];
+  let maxMonthTotal = 0;
+
+  for (let abs = minAbs; abs <= maxAbs; abs++) {
+    const year = Math.floor((abs - 1) / 12);
+    const month = ((abs - 1) % 12) + 1;
+    const monthKey = year + '-' + String(month).padStart(2, '0');
+    const label = String(year).slice(2) + '.' + String(month).padStart(2, '0');
+
+    let item = monthMap.get(monthKey);
+    if (!item) {
+      item = {
+        monthKey,
+        label,
+        year,
+        month,
+        absoluteMonth: abs,
+        parentA: 0,
+        parentB: 0,
+        retro: 0,
+        total: 0,
+        breakdown: [],
+      };
+    } else {
+      item.total = item.parentA + item.parentB + item.retro;
+      const bd = [];
+      const parent1Label = result.mode === 'couple' ? (result.parentA.name || '먼저 쉬는 사람') : '쉬는 사람';
+      const parent2Label = result.mode === 'couple' ? (result.parentB?.name || '나중에 쉬는 사람') : '';
+
+      if (item.parentA > 0) {
+        bd.push({
+          role: 'parentA',
+          name: parent1Label,
+          amount: item.parentA,
+          type: 'regular',
+        });
+      }
+      if (item.parentB > 0) {
+        bd.push({
+          role: 'parentB',
+          name: parent2Label,
+          amount: item.parentB,
+          type: 'regular',
+        });
+      }
+      if (item.retro > 0) {
+        const recipientName = pAFirst ? parent1Label : parent2Label;
+        bd.push({
+          role: pAFirst ? 'parentA' : 'parentB',
+          name: recipientName + ' 소급 정산',
+          amount: item.retro,
+          type: 'retro',
+        });
+      }
+      item.breakdown = bd;
+    }
+
+    if (item.total > maxMonthTotal) {
+      maxMonthTotal = item.total;
+    }
+    timeline.push(item);
+  }
+
+  const totalSum = timeline.reduce((sum, it) => sum + it.total, 0);
+
+  return {
+    timeline,
+    maxMonthTotal,
+    totalSum,
+    hasRetro,
+    retroMonthKey,
+    startMonthLabel: timeline[0]?.label || '',
+    endMonthLabel: timeline[timeline.length - 1]?.label || '',
+  };
+}

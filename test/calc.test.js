@@ -9,6 +9,7 @@ import {
   calculate18MonthsDeadline,
   FLOOR_BENEFIT,
   parseWageInput,
+  buildMonthlyTimeline,
 } from '../calc.js';
 
 test('1. 일반 육아휴직 1인 - 통상임금 300만원, 12개월 (예시 1)', () => {
@@ -303,3 +304,69 @@ test('12. 월 통상임금 파싱 단위 테스트 - 만원 단위 및 원 단�
   assert.ok(rAbc.error && rAbc.error.length > 0);
 });
 
+
+
+test('13. buildMonthlyTimeline - 6+6 순차 사용 케이스 (A: 2026-07부터 12개월, B: 2027-01부터 12개월)', () => {
+  const result = calculateParentalLeave({
+    mode: 'couple',
+    childBirthDate: '2026-06-30',
+    parentA: { wage: 3500000, months: 12, startDate: '2026-07-31' },
+    parentB: { wage: 3500000, months: 12, startDate: '2027-01-31' },
+  });
+
+  const timelineData = buildMonthlyTimeline(result);
+  assert.ok(timelineData.timeline.length >= 18);
+  assert.equal(timelineData.hasRetro, true);
+  assert.equal(timelineData.retroMonthKey, '2027-01');
+
+  // 총 입금 합계가 가구 총 수령액과 일치해야 함
+  assert.equal(timelineData.totalSum, result.householdTotal);
+
+  // 2027-01(두 번째 부모 첫 급여월)에 소급 정산 차액이 함께 입금됨
+  const m202701 = timelineData.timeline.find(t => t.monthKey === '2027-01');
+  assert.ok(m202701);
+  assert.ok(m202701.retro > 0);
+  assert.equal(m202701.retro, result.parentA.retroactiveTopUp);
+  assert.equal(m202701.total, m202701.parentA + m202701.parentB + m202701.retro);
+});
+
+test('14. buildMonthlyTimeline - 부부 동시/중첩 사용 케이스 (2026-03 시작, 각 6개월)', () => {
+  const result = calculateParentalLeave({
+    mode: 'couple',
+    childBirthDate: '2026-01-01',
+    parentA: { wage: 3000000, months: 6, startDate: '2026-03-01' },
+    parentB: { wage: 3000000, months: 6, startDate: '2026-03-01' },
+  });
+
+  const timelineData = buildMonthlyTimeline(result);
+  assert.equal(timelineData.timeline.length, 6);
+  assert.equal(timelineData.hasRetro, false);
+  assert.equal(timelineData.totalSum, result.householdTotal);
+
+  // 전 기간 동안 부모 양쪽 급여 동시 입금
+  for (const m of timelineData.timeline) {
+    assert.ok(m.parentA > 0);
+    assert.ok(m.parentB > 0);
+    assert.equal(m.retro, 0);
+    assert.equal(m.total, m.parentA + m.parentB);
+  }
+});
+
+test('15. buildMonthlyTimeline - 혼자(solo) 사용 케이스 (2026-05 시작, 12개월)', () => {
+  const result = calculateParentalLeave({
+    mode: 'solo',
+    parentA: { wage: 3000000, months: 12, startDate: '2026-05-01' },
+  });
+
+  const timelineData = buildMonthlyTimeline(result);
+  assert.equal(timelineData.timeline.length, 12);
+  assert.equal(timelineData.hasRetro, false);
+  assert.equal(timelineData.totalSum, result.householdTotal);
+
+  for (const m of timelineData.timeline) {
+    assert.ok(m.parentA > 0);
+    assert.equal(m.parentB, 0);
+    assert.equal(m.retro, 0);
+    assert.equal(m.total, m.parentA);
+  }
+});

@@ -1,151 +1,174 @@
 import {
   calculateParentalLeave,
   calculate18MonthsDeadline,
+  isWithin18Months,
   formatCurrency,
   formatManwon,
   parseWageInput,
+  buildMonthlyTimeline,
 } from './calc.js';
 
 // DOM 요소 캐시
-const modeInputs = document.querySelectorAll('input[name="mode"]');
+const modeRadios = document.querySelectorAll('input[name="mode"]');
 const childBirthDateInput = document.getElementById('childBirthDate');
-const childDeadlineText = document.getElementById('childDeadlineText');
 
-const parent2Card = document.getElementById('parent2Card');
-const parent1Title = document.getElementById('parent1Title');
-
+const parent1Group = document.getElementById('parent1Group');
+const parent1Heading = document.getElementById('parent1Heading');
 const wage1Input = document.getElementById('wage1');
-const wage1Preview = document.getElementById('wage1Preview');
-const wage1Hint = document.getElementById('wage1Hint');
 const startDate1Input = document.getElementById('startDate1');
-const months1Slider = document.getElementById('months1Slider');
-const months1Number = document.getElementById('months1Number');
+const months1Input = document.getElementById('months1');
+const m1Display = document.getElementById('m1Display');
+const m1DecBtn = document.getElementById('m1Dec');
+const m1IncBtn = document.getElementById('m1Inc');
 
+const parent2Group = document.getElementById('parent2Group');
+const parent2Heading = document.getElementById('parent2Heading');
 const wage2Input = document.getElementById('wage2');
-const wage2Preview = document.getElementById('wage2Preview');
-const wage2Hint = document.getElementById('wage2Hint');
 const startDate2Input = document.getElementById('startDate2');
-const months2Slider = document.getElementById('months2Slider');
-const months2Number = document.getElementById('months2Number');
+const months2Input = document.getElementById('months2');
+const m2Display = document.getElementById('m2Display');
+const m2DecBtn = document.getElementById('m2Dec');
+const m2IncBtn = document.getElementById('m2Inc');
+
+const heroLabel = document.getElementById('heroLabel');
+const heroTotal = document.getElementById('heroTotal');
+const heroGainText = document.getElementById('heroGainText');
+
+const legendP1Label = document.getElementById('legendP1Label');
+const legendP2Label = document.getElementById('legendP2Label');
+const legendP2Item = document.getElementById('legendP2Item');
+const legendRetroItem = document.getElementById('legendRetroItem');
+const activeMonthBreakdown = document.getElementById('activeMonthBreakdown');
+const chartSvgWrap = document.getElementById('chartSvgWrap');
+const chartFootnote = document.getElementById('chartFootnote');
+const accessibleTimelineBody = document.getElementById('accessibleTimelineBody');
+
+const personSummaryRow1 = document.getElementById('personSummaryRow1');
+const personSummaryRow2 = document.getElementById('personSummaryRow2');
+const person1Name = document.getElementById('person1Name');
+const person1Val = document.getElementById('person1Val');
+const person2Name = document.getElementById('person2Name');
+const person2Val = document.getElementById('person2Val');
+
+const scheduleBlock1 = document.getElementById('scheduleBlock1');
+const scheduleBlock2 = document.getElementById('scheduleBlock2');
+const scheduleTitle1 = document.getElementById('scheduleTitle1');
+const scheduleTitle2 = document.getElementById('scheduleTitle2');
+const scheduleBody1 = document.getElementById('scheduleBody1');
+const scheduleBody2 = document.getElementById('scheduleBody2');
 
 const copyLinkBtn = document.getElementById('copyLinkBtn');
 const toast = document.getElementById('toast');
 
-// 결과 렌더링 컨테이너
-const verdictBadge = document.getElementById('verdictBadge');
-const verdictReasons = document.getElementById('verdictReasons');
+let activeMonthIndex = null;
+let currentTimelineData = null;
 
-const householdTotalEl = document.getElementById('householdTotal');
-const benefitGainCard = document.getElementById('benefitGainCard');
-const benefitGainEl = document.getElementById('benefitGain');
-
-const topUpContainer = document.getElementById('topUpContainer');
-const firstParentLeaveEl = document.getElementById('firstParentLeave');
-const retroactiveTopUpEl = document.getElementById('retroactiveTopUp');
-
-const parent1TotalEl = document.getElementById('parent1Total');
-const parent1ScheduleBody = document.getElementById('parent1ScheduleBody');
-
-const parent2SummarySection = document.getElementById('parent2SummarySection');
-const parent2TotalEl = document.getElementById('parent2Total');
-const parent2ScheduleCard = document.getElementById('parent2ScheduleCard');
-const parent2ScheduleBody = document.getElementById('parent2ScheduleBody');
-
-const comparisonSection = document.getElementById('comparisonSection');
-const compSpecialBar = document.getElementById('compSpecialBar');
-const compNormalBar = document.getElementById('compNormalBar');
-const compSpecialText = document.getElementById('compSpecialText');
-const compNormalText = document.getElementById('compNormalText');
-const compDiffText = document.getElementById('compDiffText');
-
-// 기본 날짜 설정
+// 날짜 초기 기본값
 function setDefaultDates() {
   const today = new Date();
-  
+
   // 기본 자녀 생년월일: 약 3개월 전
   const birth = new Date(today.getFullYear(), today.getMonth() - 3, 1);
   if (!childBirthDateInput.value) {
     childBirthDateInput.value = birth.toISOString().slice(0, 10);
   }
 
-  // 부모 1 휴직 시작일: 약 2개월 전
+  // 먼저 쉬는 사람: 약 2개월 전
   const start1 = new Date(today.getFullYear(), today.getMonth() - 2, 1);
   if (!startDate1Input.value) {
     startDate1Input.value = start1.toISOString().slice(0, 10);
   }
 
-  // 부모 2 휴직 시작일: 약 4개월 뒤
+  // 나중에 쉬는 사람: 약 4개월 뒤
   const start2 = new Date(today.getFullYear(), today.getMonth() + 4, 1);
   if (!startDate2Input.value) {
     startDate2Input.value = start2.toISOString().slice(0, 10);
   }
 }
 
-// URL 쿼리 파라미터 읽기 (이전 버전 및 새 버전 호환)
+// Stepper 업데이트 헬퍼
+function updateStepper(personNum, val) {
+  const clamped = Math.max(1, Math.min(18, val));
+  if (personNum === 1) {
+    months1Input.value = clamped;
+    m1Display.textContent = clamped + '개월';
+    m1DecBtn.disabled = clamped <= 1;
+    m1IncBtn.disabled = clamped >= 18;
+  } else {
+    months2Input.value = clamped;
+    m2Display.textContent = clamped + '개월';
+    m2DecBtn.disabled = clamped <= 1;
+    m2IncBtn.disabled = clamped >= 18;
+  }
+}
+
+// URL 쿼리 파라미터 읽기
 function loadStateFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  
+
   if (params.has('mode')) {
     const mode = params.get('mode');
     const radio = document.querySelector('input[name="mode"][value="' + mode + '"]');
     if (radio) radio.checked = true;
   }
-  
-  if (params.has('birth')) childBirthDateInput.value = params.get('birth');
-  
+
+  if (params.has('birth')) {
+    childBirthDateInput.value = params.get('birth');
+  }
+
   if (params.has('w1')) {
     const parsed = parseWageInput(params.get('w1'));
     if (parsed.valid) {
-      wage1Input.value = (parsed.value / 10000).toString();
-    } else {
-      wage1Input.value = '350';
+      wage1Input.value = Math.round(parsed.value / 10000).toString();
     }
-  } else if (!wage1Input.value) {
-    wage1Input.value = '350';
   }
-  
-  if (params.has('s1')) startDate1Input.value = params.get('s1');
+
+  if (params.has('s1')) {
+    startDate1Input.value = params.get('s1');
+  }
+
   if (params.has('m1')) {
     const m1 = parseInt(params.get('m1'), 10) || 12;
-    months1Slider.value = m1;
-    months1Number.value = m1;
+    updateStepper(1, m1);
+  } else {
+    updateStepper(1, 12);
   }
 
   if (params.has('w2')) {
     const parsed = parseWageInput(params.get('w2'));
     if (parsed.valid) {
-      wage2Input.value = (parsed.value / 10000).toString();
-    } else {
-      wage2Input.value = '350';
+      wage2Input.value = Math.round(parsed.value / 10000).toString();
     }
-  } else if (!wage2Input.value) {
-    wage2Input.value = '350';
   }
 
-  if (params.has('s2')) startDate2Input.value = params.get('s2');
+  if (params.has('s2')) {
+    startDate2Input.value = params.get('s2');
+  }
+
   if (params.has('m2')) {
     const m2 = parseInt(params.get('m2'), 10) || 12;
-    months2Slider.value = m2;
-    months2Number.value = m2;
+    updateStepper(2, m2);
+  } else {
+    updateStepper(2, 12);
   }
 }
 
-// URL 쿼리 파라미터 업데이트
+// URL 쿼리 파라미터 저장 (기존 파라미터와 100% 호환)
 function saveStateToUrl(wageWon1, wageWon2) {
   const currentMode = document.querySelector('input[name="mode"]:checked')?.value || 'couple';
   const params = new URLSearchParams();
-  
+
   params.set('mode', currentMode);
   if (childBirthDateInput.value) params.set('birth', childBirthDateInput.value);
-  
+
   if (wageWon1) params.set('w1', wageWon1.toString());
   if (startDate1Input.value) params.set('s1', startDate1Input.value);
-  params.set('m1', months1Number.value);
+  params.set('m1', months1Input.value);
 
   if (currentMode === 'couple') {
     if (wageWon2) params.set('w2', wageWon2.toString());
     if (startDate2Input.value) params.set('s2', startDate2Input.value);
-    params.set('m2', months2Number.value);
+    params.set('m2', months2Input.value);
   }
 
   const newUrl = window.location.pathname + '?' + params.toString();
@@ -157,88 +180,55 @@ export function updateCalculation() {
   const mode = document.querySelector('input[name="mode"]:checked')?.value || 'couple';
   const childBirthDate = childBirthDateInput.value;
 
-  // 18개월 마감일 텍스트 갱신
-  if (childBirthDate) {
-    const deadline = calculate18MonthsDeadline(childBirthDate);
-    if (deadline) {
-      childDeadlineText.textContent = '생후 18개월 도래일(마감일): ' + deadline;
-      childDeadlineText.style.display = 'block';
-    } else {
-      childDeadlineText.style.display = 'none';
-    }
-  } else {
-    childDeadlineText.style.display = 'none';
-  }
-
-  // 모드별 UI 전환
+  // 1. 모드별 레이아웃 전환
   if (mode === 'couple') {
-    parent2Card.style.display = 'block';
-    parent2ScheduleCard.style.display = 'block';
-    parent2SummarySection.style.display = 'block';
-    parent1Title.textContent = '부모 1 (엄마/선사용)';
-    comparisonSection.style.display = 'block';
+    parent2Group.style.display = 'flex';
+    parent1Heading.textContent = '먼저 쉬는 사람';
+    parent2Heading.textContent = '나중에 쉬는 사람';
+    heroLabel.textContent = '부부가 받는 총 금액';
+    personSummaryRow2.style.display = 'flex';
+    scheduleBlock2.style.display = 'block';
+    legendP2Item.style.display = 'inline-flex';
+    legendP1Label.textContent = '먼저 쉬는 사람';
+    legendP2Label.textContent = '나중에 쉬는 사람';
   } else if (mode === 'single') {
-    parent2Card.style.display = 'none';
-    parent2ScheduleCard.style.display = 'none';
-    parent2SummarySection.style.display = 'none';
-    parent1Title.textContent = '한부모 근로자';
-    comparisonSection.style.display = 'none';
+    parent2Group.style.display = 'none';
+    parent1Heading.textContent = '쉬는 사람';
+    heroLabel.textContent = '내가 받는 총 금액';
+    personSummaryRow2.style.display = 'none';
+    scheduleBlock2.style.display = 'none';
+    legendP2Item.style.display = 'none';
+    legendRetroItem.style.display = 'none';
+    legendP1Label.textContent = '쉬는 사람';
   } else { // solo
-    parent2Card.style.display = 'none';
-    parent2ScheduleCard.style.display = 'none';
-    parent2SummarySection.style.display = 'none';
-    parent1Title.textContent = '신청 근로자';
-    comparisonSection.style.display = 'none';
+    parent2Group.style.display = 'none';
+    parent1Heading.textContent = '쉬는 사람';
+    heroLabel.textContent = '내가 받는 총 금액';
+    personSummaryRow2.style.display = 'none';
+    scheduleBlock2.style.display = 'none';
+    legendP2Item.style.display = 'none';
+    legendRetroItem.style.display = 'none';
+    legendP1Label.textContent = '쉬는 사람';
   }
 
-  // 임금 입력값 검증 및 파싱
+  // 2. 통상임금 파싱
   const p1 = parseWageInput(wage1Input.value);
-  let hasError = false;
-
-  if (p1.valid) {
-    wage1Hint.className = 'live-wage-hint';
-    wage1Hint.textContent = '= ' + formatCurrency(p1.value);
-    wage1Preview.textContent = '(' + formatManwon(p1.value) + ')';
-  } else {
-    wage1Hint.className = 'live-wage-error';
-    wage1Hint.textContent = '⚠️ ' + p1.error;
-    wage1Preview.textContent = '';
-    hasError = true;
-  }
-
   let p2 = { valid: true, value: 0 };
   if (mode === 'couple') {
     p2 = parseWageInput(wage2Input.value);
-    if (p2.valid) {
-      wage2Hint.className = 'live-wage-hint';
-      wage2Hint.textContent = '= ' + formatCurrency(p2.value);
-      wage2Preview.textContent = '(' + formatManwon(p2.value) + ')';
-    } else {
-      wage2Hint.className = 'live-wage-error';
-      wage2Hint.textContent = '⚠️ ' + p2.error;
-      wage2Preview.textContent = '';
-      hasError = true;
-    }
   }
 
-  if (hasError) {
-    // 유효하지 않은 입력값이면 계산을 중단하고 안내
-    verdictBadge.className = 'badge badge-warning';
-    verdictBadge.innerHTML = '<span>⚠️</span> 통상임금을 올바르게 입력해주세요.';
-    verdictReasons.innerHTML = '<li>통상임금 입력란에 300 또는 300만원 형식으로 숫자를 입력해주세요.</li>';
-    householdTotalEl.textContent = '-';
-    if (benefitGainEl) benefitGainEl.textContent = '-';
-    parent1TotalEl.textContent = '-';
-    parent2TotalEl.textContent = '-';
-    parent1ScheduleBody.innerHTML = '';
-    parent2ScheduleBody.innerHTML = '';
+  if (!p1.valid || !p2.valid) {
+    heroTotal.textContent = '-';
+    heroGainText.textContent = '통상임금을 숫자로 입력해주세요.';
+    heroGainText.className = 'hero-subtext muted';
     return;
   }
 
   const wage1 = p1.value;
-  const months1 = parseInt(months1Number.value, 10) || 12;
+  const months1 = parseInt(months1Input.value, 10) || 12;
   const wage2 = p2.value;
-  const months2 = parseInt(months2Number.value, 10) || 12;
+  const months2 = parseInt(months2Input.value, 10) || 12;
 
   const calcParams = {
     mode,
@@ -247,7 +237,7 @@ export function updateCalculation() {
       wage: wage1,
       months: months1,
       startDate: startDate1Input.value || null,
-      name: mode === 'couple' ? '부모 1' : (mode === 'single' ? '한부모' : '신청자'),
+      name: mode === 'couple' ? '먼저 쉬는 사람' : '쉬는 사람',
     },
   };
 
@@ -256,7 +246,7 @@ export function updateCalculation() {
       wage: wage2,
       months: months2,
       startDate: startDate2Input.value || null,
-      name: '부모 2',
+      name: '나중에 쉬는 사람',
     };
   }
 
@@ -268,226 +258,309 @@ export function updateCalculation() {
     return;
   }
 
-  // 1. 배지 및 사유
-  verdictReasons.innerHTML = '';
-  if (mode === 'couple') {
-    if (result.is6Plus6Eligible) {
-      verdictBadge.className = 'badge badge-success';
-      verdictBadge.innerHTML = '<span>✔</span> 6+6 부모함께육아휴직제 적용 (' + result.specialMonths + '개월 특례)';
-    } else {
-      verdictBadge.className = 'badge badge-warning';
-      verdictBadge.innerHTML = '<span>⚠</span> 6+6 요건 미충족 (일반 육아휴직 규정 적용)';
-    }
+  // 3. Result Hero 업데이트 (150ms 모션)
+  heroTotal.textContent = formatManwon(result.householdTotal);
+  heroTotal.classList.add('updating');
+  setTimeout(() => {
+    heroTotal.classList.remove('updating');
+  }, 150);
 
-    result.eligibilityReasons.forEach(r => {
-      const li = document.createElement('li');
-      li.textContent = r;
-      verdictReasons.appendChild(li);
-    });
+  // Result Subline
+  if (mode === 'couple') {
+    if (result.is6Plus6Eligible && result.benefitGain > 0) {
+      heroGainText.textContent = '6+6 덕분에 ' + formatManwon(result.benefitGain) + ' 더 받아요';
+      heroGainText.className = 'hero-subtext';
+    } else if (result.is6Plus6Eligible && result.benefitGain === 0) {
+      heroGainText.textContent = '통상임금 기준으로 6+6 특례와 일반 급여 수령액이 같아요.';
+      heroGainText.className = 'hero-subtext muted';
+    } else {
+      const deadline = calculate18MonthsDeadline(childBirthDate);
+      const s1 = startDate1Input.value;
+      const s2 = startDate2Input.value;
+      let reason = '아이 생후 18개월이 지나 시작해서 6+6이 적용되지 않아요.';
+      if (s2 && deadline && s2 > deadline) {
+        reason = '나중에 쉬는 사람이 아이 생후 18개월이 지나 시작해서 6+6이 적용되지 않아요.';
+      } else if (s1 && deadline && s1 > deadline) {
+        reason = '먼저 쉬는 사람이 아이 생후 18개월이 지나 시작해서 6+6이 적용되지 않아요.';
+      }
+      heroGainText.textContent = reason;
+      heroGainText.className = 'hero-subtext muted';
+    }
   } else if (mode === 'single') {
-    verdictBadge.className = 'badge badge-info';
-    verdictBadge.innerHTML = '<span>★</span> 한부모 특례 적용 (1~3개월 상한 300만원)';
-    const li = document.createElement('li');
-    li.textContent = '한부모가족지원법에 따른 한부모 근로자 특례 급여가 산정되었습니다.';
-    verdictReasons.appendChild(li);
+    heroGainText.textContent = '한부모 근로자 특례(첫 3개월 상한 300만원)가 적용돼요.';
+    heroGainText.className = 'hero-subtext muted';
   } else {
-    verdictBadge.className = 'badge badge-neutral';
-    verdictBadge.innerHTML = '<span>ℹ</span> 일반 육아휴직 급여 적용';
-    const li = document.createElement('li');
-    li.textContent = '배우자 미사용 단독 신청 기준(1~3개월 상한 250만, 4~6개월 200만, 7개월~ 80% 상한 160만)입니다.';
-    verdictReasons.appendChild(li);
+    heroGainText.textContent = '배우자가 쓰지 않는 일반 육아휴직 급여 기준이에요.';
+    heroGainText.className = 'hero-subtext muted';
   }
 
-  // 2. 요약 카드 렌더링
-  householdTotalEl.textContent = formatCurrency(result.householdTotal);
-
-  if (mode === 'couple') {
-    benefitGainCard.style.display = 'block';
-    if (result.benefitGain > 0) {
-      benefitGainEl.textContent = '+' + formatCurrency(result.benefitGain) + ' (' + formatManwon(result.benefitGain) + ' 더 받음)';
-      benefitGainEl.className = 'stat-value text-gain';
-    } else {
-      benefitGainEl.textContent = '0원 (일반 급여와 동일)';
-      benefitGainEl.className = 'stat-value';
-    }
-
-    // 소급 정산 섹션 (순차 사용 시)
-    if (result.is6Plus6Eligible && result.isSequential && (result.parentA.retroactiveTopUp > 0 || result.parentB.retroactiveTopUp > 0)) {
-      topUpContainer.style.display = 'grid';
-      const firstParent = result.parentA.isFirstParent ? result.parentA : result.parentB;
-      firstParentLeaveEl.textContent = formatCurrency(firstParent.duringLeaveTotal);
-      retroactiveTopUpEl.textContent = '+' + formatCurrency(firstParent.retroactiveTopUp);
-    } else {
-      topUpContainer.style.display = 'none';
-    }
-  } else {
-    benefitGainCard.style.display = 'none';
-    topUpContainer.style.display = 'none';
+  // 4. Per-person Summary 업데이트
+  const pA = result.parentA;
+  person1Name.textContent = mode === 'couple' ? '먼저 쉬는 사람' : '쉬는 사람';
+  let p1Text = formatManwon(pA.total);
+  if (pA.retroactiveTopUp > 0) {
+    p1Text += ' · 이 중 소급 ' + formatManwon(pA.retroactiveTopUp);
   }
+  person1Val.textContent = p1Text;
 
-  // 3. 부모 1 테이블 렌더링
-  parent1TotalEl.textContent = formatCurrency(result.parentA.total);
-  renderScheduleTable(
-    parent1ScheduleBody,
-    result.parentA.schedule,
-    result.parentA.isFirstParent,
-    result.parentA.normalSchedule
-  );
-
-  // 4. 부모 2 테이블 렌더링 (couple 모드인 경우)
   if (mode === 'couple' && result.parentB) {
-    parent2TotalEl.textContent = formatCurrency(result.parentB.total);
-    renderScheduleTable(
-      parent2ScheduleBody,
-      result.parentB.schedule,
-      result.parentB.isFirstParent,
-      result.parentB.normalSchedule
-    );
-  }
-
-  // 5. 비교 바 차트 렌더링
-  if (mode === 'couple') {
-    const specialVal = result.householdTotal;
-    const normalVal = result.normalHouseholdTotal;
-    const maxVal = Math.max(specialVal, normalVal, 1);
-
-    compSpecialBar.style.width = ((specialVal / maxVal) * 100).toFixed(1) + '%';
-    compNormalBar.style.width = ((normalVal / maxVal) * 100).toFixed(1) + '%';
-
-    compSpecialText.textContent = formatCurrency(specialVal);
-    compNormalText.textContent = formatCurrency(normalVal);
-
-    if (result.benefitGain > 0) {
-      compDiffText.innerHTML = '6+6 부모함께육아휴직제 적용 시 부부 합산 <strong>' + formatCurrency(result.benefitGain) + ' (' + formatManwon(result.benefitGain) + ')</strong>의 급여를 더 수령합니다.';
-    } else {
-      compDiffText.innerHTML = '통상임금 수준에 따라 6+6 특례와 일반 급여 수령액이 동일합니다.';
+    const pB = result.parentB;
+    person2Name.textContent = '나중에 쉬는 사람';
+    let p2Text = formatManwon(pB.total);
+    if (pB.retroactiveTopUp > 0) {
+      p2Text += ' · 이 중 소급 ' + formatManwon(pB.retroactiveTopUp);
     }
+    person2Val.textContent = p2Text;
   }
+
+  // 5. Details Tables 업데이트
+  scheduleTitle1.textContent = mode === 'couple' ? '먼저 쉬는 사람' : '쉬는 사람';
+  renderScheduleTable(scheduleBody1, pA.schedule);
+  if (mode === 'couple' && result.parentB) {
+    scheduleTitle2.textContent = '나중에 쉬는 사람';
+    renderScheduleTable(scheduleBody2, result.parentB.schedule);
+  }
+
+  // 6. Monthly Timeline Chart 렌더링
+  const timelineData = buildMonthlyTimeline(result);
+  currentTimelineData = timelineData;
+  renderTimelineChart(timelineData, result);
 
   saveStateToUrl(wage1, wage2);
 }
 
-// 월차별 테이블 렌더링 헬퍼
-function renderScheduleTable(tbody, schedule, isFirstParent, normalSchedule) {
+// 월별 자세히 보기 테이블 렌더링
+function renderScheduleTable(tbody, schedule) {
   tbody.innerHTML = '';
-  schedule.forEach((item, idx) => {
+  schedule.forEach(item => {
     const tr = document.createElement('tr');
-    
-    // 월차
+
     const tdMonth = document.createElement('td');
     tdMonth.textContent = item.month + '개월차';
-    tdMonth.className = 'text-center font-semibold';
     tr.appendChild(tdMonth);
 
-    // 적용 기준
-    const tdRule = document.createElement('td');
-    const badge = document.createElement('span');
-    if (item.ruleType === 'special_6plus6') {
-      badge.className = 'pill pill-special';
-      badge.textContent = '6+6 특례 (100%)';
-    } else if (item.ruleType === 'single') {
-      badge.className = 'pill pill-single';
-      badge.textContent = '한부모 특례';
-    } else {
-      badge.className = 'pill pill-normal';
-      badge.textContent = item.rate === 1.0 ? '일반 (100%)' : '일반 (80%)';
-    }
-    tdRule.appendChild(badge);
-    tr.appendChild(tdRule);
-
-    // 상한액
-    const tdCap = document.createElement('td');
-    tdCap.textContent = (item.cap / 10000).toLocaleString('ko-KR') + '만원';
-    tdCap.className = 'text-right text-muted';
-    tr.appendChild(tdCap);
-
-    // 지급액 (최종 정산 기준)
     const tdAmt = document.createElement('td');
-    tdAmt.textContent = formatCurrency(item.amount);
-    tdAmt.className = 'text-right font-semibold text-primary';
+    tdAmt.textContent = formatManwon(item.amount);
+    tdAmt.className = 'text-right font-medium';
     tr.appendChild(tdAmt);
 
-    // 순차 선사용자 소급 차액 표시
-    const tdDetail = document.createElement('td');
-    if (isFirstParent && normalSchedule && normalSchedule[idx]) {
-      const normalAmt = normalSchedule[idx].amount;
-      const diff = Math.max(0, item.amount - normalAmt);
-      if (diff > 0) {
-        tdDetail.innerHTML = '<span class="text-xs text-muted">휴직중: ' + (normalAmt / 10000) + '만</span><br><strong class="text-gain text-xs">소급: +' + (diff / 10000) + '만</strong>';
-      } else {
-        tdDetail.innerHTML = '<span class="text-xs text-muted">휴직 중 전액 지급</span>';
-      }
+    const tdRule = document.createElement('td');
+    let ruleText = '';
+    const capMan = Math.round(item.cap / 10000);
+    if (item.ruleType === 'special_6plus6') {
+      ruleText = '6+6 · 상한 ' + capMan + '만';
+    } else if (item.ruleType === 'single') {
+      ruleText = '한부모 · 상한 ' + capMan + '만';
     } else {
-      tdDetail.innerHTML = '<span class="text-xs text-muted">매월 전액 지급</span>';
+      ruleText = '일반 · 상한 ' + capMan + '만';
     }
-    tdDetail.className = 'text-center';
-    tr.appendChild(tdDetail);
+    tdRule.textContent = ruleText;
+    tdRule.className = 'text-right';
+    tr.appendChild(tdRule);
 
     tbody.appendChild(tr);
   });
 }
 
-// 이벤트 바인딩
-function setupEventListeners() {
-  // 모드 변경
-  modeInputs.forEach(input => {
-    input.addEventListener('change', updateCalculation);
+// 월별 타임라인 차트 렌더링 (Pure SVG + Accessible Table)
+function renderTimelineChart(timelineData, result) {
+  const { timeline, maxMonthTotal, hasRetro, retroMonthKey } = timelineData;
+  if (!timeline || timeline.length === 0) return;
+
+  // 레전드 표시 제어
+  if (hasRetro) {
+    legendRetroItem.style.display = 'inline-flex';
+    chartFootnote.style.display = 'block';
+  } else {
+    legendRetroItem.style.display = 'none';
+    chartFootnote.style.display = 'none';
+  }
+
+  // 스크린리더용 테이블 채우기
+  accessibleTimelineBody.innerHTML = '';
+  timeline.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.year}년 ${item.month}월</td>
+      <td>${formatCurrency(item.parentA)}</td>
+      <td>${formatCurrency(item.parentB)}</td>
+      <td>${formatCurrency(item.retro)}</td>
+      <td>${formatCurrency(item.total)}</td>
+    `;
+    accessibleTimelineBody.appendChild(tr);
   });
 
-  // 자녀 생년월일
+  // SVG 차트 치수 설정
+  const N = timeline.length;
+  const svgWidth = 500;
+  const svgHeight = 175;
+  const chartBottomY = 142;
+  const maxBarH = 110;
+
+  const leftPad = 12;
+  const rightPad = 12;
+  const usableW = svgWidth - leftPad - rightPad;
+  const step = usableW / N;
+  const barW = Math.max(8, Math.min(22, step * 0.65));
+
+  let barsHtml = '';
+  const baselineY = chartBottomY + 1;
+
+  // 기준선
+  barsHtml += `<line x1="${leftPad - 4}" y1="${baselineY}" x2="${svgWidth - rightPad + 4}" y2="${baselineY}" stroke="#E5E8EB" stroke-width="1" />`;
+
+  timeline.forEach((item, idx) => {
+    const cx = leftPad + idx * step + step / 2;
+    const bx = cx - barW / 2;
+
+    const hA = maxMonthTotal > 0 ? Math.round((item.parentA / maxMonthTotal) * maxBarH) : 0;
+    const hB = maxMonthTotal > 0 ? Math.round((item.parentB / maxMonthTotal) * maxBarH) : 0;
+    const hR = maxMonthTotal > 0 ? Math.round((item.retro / maxMonthTotal) * maxBarH) : 0;
+
+    let currY = chartBottomY;
+    let segs = '';
+
+    // Parent A segment (#0B7A6F)
+    if (hA > 0) {
+      currY -= hA;
+      segs += `<rect x="${bx}" y="${currY}" width="${barW}" height="${hA}" fill="#0B7A6F" rx="2" />`;
+    }
+
+    // Parent B segment (#70C0B7)
+    if (hB > 0) {
+      currY -= hB;
+      segs += `<rect x="${bx}" y="${currY}" width="${barW}" height="${hB}" fill="#70C0B7" rx="2" />`;
+    }
+
+    // Retro segment (#E8A33D)
+    if (hR > 0) {
+      currY -= hR;
+      segs += `<rect x="${bx}" y="${currY}" width="${barW}" height="${hR}" fill="#E8A33D" rx="2" />`;
+    }
+
+    // X-axis label
+    const interval = N <= 12 ? 1 : (N <= 18 ? 2 : 3);
+    const showLabel = (idx % interval === 0);
+
+    const labelHtml = showLabel
+      ? `<text x="${cx}" y="${baselineY + 14}" text-anchor="middle" font-size="10" fill="#8B95A1" font-family="inherit">${item.label}</text>`
+      : '';
+
+    // Bar click/tap hit area
+    barsHtml += `
+      <g class="chart-bar-group" data-idx="${idx}" tabindex="0" role="button" aria-label="${item.year}년 ${item.month}월 총 ${formatManwon(item.total)}">
+        <rect x="${cx - step / 2}" y="10" width="${step}" height="${chartBottomY}" fill="transparent" />
+        ${segs}
+        ${labelHtml}
+      </g>
+    `;
+  });
+
+  chartSvgWrap.innerHTML = `
+    <svg viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="xMidYMid meet">
+      ${barsHtml}
+    </svg>
+  `;
+
+  // 기본 활성 월 정보 표시: 소급 정산월이 있으면 소급월, 없으면 입금액 최대월
+  let defaultIdx = 0;
+  if (hasRetro && retroMonthKey) {
+    const rIdx = timeline.findIndex(t => t.monthKey === retroMonthKey);
+    if (rIdx >= 0) defaultIdx = rIdx;
+  } else {
+    let maxAmt = -1;
+    timeline.forEach((t, i) => {
+      if (t.total > maxAmt) {
+        maxAmt = t.total;
+        defaultIdx = i;
+      }
+    });
+  }
+
+  showMonthBreakdown(timeline[defaultIdx]);
+
+  // 바 그룹 인터랙션 바인딩
+  const barGroups = chartSvgWrap.querySelectorAll('.chart-bar-group');
+  barGroups.forEach(bg => {
+    const idx = parseInt(bg.getAttribute('data-idx'), 10);
+    const item = timeline[idx];
+
+    const activate = () => {
+      barGroups.forEach(b => b.style.opacity = '0.45');
+      bg.style.opacity = '1';
+      showMonthBreakdown(item);
+    };
+
+    bg.addEventListener('mouseenter', activate);
+    bg.addEventListener('click', activate);
+    bg.addEventListener('focus', activate);
+  });
+
+  chartSvgWrap.addEventListener('mouseleave', () => {
+    barGroups.forEach(b => b.style.opacity = '1');
+    showMonthBreakdown(timeline[defaultIdx]);
+  });
+}
+
+function showMonthBreakdown(item) {
+  if (!item) return;
+  const parts = [];
+  if (item.parentA > 0) {
+    const name = document.querySelector('input[name="mode"]:checked')?.value === 'couple' ? '먼저 쉬는 사람' : '쉬는 사람';
+    parts.push(name + ' ' + formatManwon(item.parentA));
+  }
+  if (item.parentB > 0) {
+    parts.push('나중에 쉬는 사람 ' + formatManwon(item.parentB));
+  }
+  if (item.retro > 0) {
+    parts.push('소급 정산 ' + formatManwon(item.retro));
+  }
+
+  activeMonthBreakdown.innerHTML = `
+    <div class="breakdown-primary">${item.year}년 ${item.month}월 · ${formatManwon(item.total)}</div>
+    <div class="breakdown-secondary">${parts.join(' · ')}</div>
+  `;
+}
+
+// 이벤트 리스너 설정
+function setupEventListeners() {
+  modeRadios.forEach(r => r.addEventListener('change', updateCalculation));
+
   childBirthDateInput.addEventListener('input', updateCalculation);
 
-  // 부모 1
   wage1Input.addEventListener('input', updateCalculation);
   startDate1Input.addEventListener('input', updateCalculation);
-  months1Slider.addEventListener('input', (e) => {
-    months1Number.value = e.target.value;
+
+  m1DecBtn.addEventListener('click', () => {
+    const cur = parseInt(months1Input.value, 10) || 12;
+    updateStepper(1, cur - 1);
     updateCalculation();
   });
-  months1Number.addEventListener('input', (e) => {
-    months1Slider.value = e.target.value;
+  m1IncBtn.addEventListener('click', () => {
+    const cur = parseInt(months1Input.value, 10) || 12;
+    updateStepper(1, cur + 1);
     updateCalculation();
   });
 
-  // 부모 2
   wage2Input.addEventListener('input', updateCalculation);
   startDate2Input.addEventListener('input', updateCalculation);
-  months2Slider.addEventListener('input', (e) => {
-    months2Number.value = e.target.value;
+
+  m2DecBtn.addEventListener('click', () => {
+    const cur = parseInt(months2Input.value, 10) || 12;
+    updateStepper(2, cur - 1);
     updateCalculation();
   });
-  months2Number.addEventListener('input', (e) => {
-    months2Slider.value = e.target.value;
+  m2IncBtn.addEventListener('click', () => {
+    const cur = parseInt(months2Input.value, 10) || 12;
+    updateStepper(2, cur + 1);
     updateCalculation();
-  });
-
-  // 빠른 금액 버튼 (250, 300, 400, 500, +50)
-  document.querySelectorAll('[data-quick-wage]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const targetId = btn.getAttribute('data-target');
-      const inputEl = document.getElementById(targetId);
-      const action = btn.getAttribute('data-quick-wage');
-      
-      const parsed = parseWageInput(inputEl.value);
-      let currentManwon = parsed.valid ? Math.round(parsed.value / 10000) : 0;
-
-      if (action.startsWith('+')) {
-        const add = parseInt(action.slice(1), 10);
-        currentManwon += add;
-      } else {
-        currentManwon = parseInt(action, 10);
-      }
-
-      inputEl.value = currentManwon.toString();
-      updateCalculation();
-    });
   });
 
   // 링크 복사 버튼
   copyLinkBtn.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      showToast('결과 링크가 클립보드에 복사되었습니다!');
+      showToast('결과 링크를 복사했어요');
     } catch {
       const tempInput = document.createElement('input');
       tempInput.value = window.location.href;
@@ -495,24 +568,32 @@ function setupEventListeners() {
       tempInput.select();
       document.execCommand('copy');
       document.body.removeChild(tempInput);
-      showToast('결과 링크가 클립보드에 복사되었습니다!');
+      showToast('결과 링크를 복사했어요');
     }
   });
 }
 
-function showToast(message) {
-  toast.textContent = message;
+function showToast(msg) {
+  toast.textContent = msg;
   toast.classList.add('show');
   setTimeout(() => {
     toast.classList.remove('show');
-  }, 2500);
+  }, 2200);
 }
 
 // 초기화
-window.addEventListener('DOMContentLoaded', () => {
+function init() {
   setDefaultDates();
   loadStateFromUrl();
   setupEventListeners();
   updateCalculation();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+
 
