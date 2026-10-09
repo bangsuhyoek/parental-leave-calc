@@ -134,7 +134,6 @@
               <button type="button" class="stepper-btn" id="m2Inc" aria-label="1개월 늘리기">+</button>
               <input type="hidden" id="months2" value="12">
             </div>
-            <p class="field-helper">부모 모두 3개월 이상 쓰면 최대 18개월까지 가능해요</p>
           </div>
         </div>
       </section>
@@ -151,7 +150,10 @@
       <!-- 5. Monthly Cash-flow Chart -->
       <section class="chart-section" aria-label="월별 급여 입금 타임라인">
         <div class="chart-header">
-          <h2 class="chart-title">월별 입금 흐름</h2>
+          <div class="chart-title-wrap">
+            <h2 class="chart-title">월별 받는 돈</h2>
+            <p class="chart-subline">휴직한 달 기준이에요. 실제 입금은 매달 신청한 뒤라 조금 늦어요.</p>
+          </div>
           <div class="chart-legend">
             <span class="legend-item"><span class="legend-dot dot-p1"></span><span id="legendP1Label">먼저 쉬는 사람</span></span>
             <span class="legend-item" id="legendP2Item"><span class="legend-dot dot-p2"></span><span id="legendP2Label">나중에 쉬는 사람</span></span>
@@ -293,6 +295,13 @@
       </section>
     </main>
 
+        <!-- Sticky Bottom Bar (< 960px) -->
+    <div class="sticky-bottom-bar" id="stickyBottomBar" aria-hidden="true">
+      <div class="sticky-bar-inner">
+        <div class="sticky-bar-text" id="stickyBarText">부부 총 5,620만원</div>
+        <button type="button" class="sticky-bar-btn" id="stickyBarBtn">결과 보기</button>
+      </div>
+    </div>
     <!-- 10. Footer (One line) -->
     <footer class="site-footer">
       <p>2026년 대한민국 고용보험법령 기준 비영리 모의계산기예요.</p>
