@@ -434,3 +434,52 @@ export function formatManwon(amount) {
   return manwon.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '만원';
 }
 
+
+
+/**
+ * 월 통상임금 입력값 파싱 (만원 기준 기본 지원)
+ * @param {string|number} input
+ * @returns {{ valid: boolean, value?: number, error?: string }}
+ */
+export function parseWageInput(input) {
+  if (input === null || input === undefined) {
+    return { valid: false, error: '금액을 입력해주세요.' };
+  }
+  const str = String(input).trim();
+  if (!str) {
+    return { valid: false, error: '금액을 입력해주세요.' };
+  }
+  if (str.startsWith('-') || /^-/.test(str)) {
+    return { valid: false, error: '0 이상의 금액을 입력해주세요.' };
+  }
+
+  const hasMan = /만/.test(str);
+  const cleaned = str.replace(/[, \s]/g, '');
+
+  if (hasMan) {
+    const match = cleaned.match(/^([0-9]+(\.[0-9]+)?)만/);
+    if (!match) {
+      return { valid: false, error: '올바른 금액을 입력해주세요.' };
+    }
+    const n = parseFloat(match[1]);
+    if (isNaN(n) || n < 0) {
+      return { valid: false, error: '올바른 금액을 입력해주세요.' };
+    }
+    return { valid: true, value: Math.round(n * 10000) };
+  } else {
+    const withoutWon = cleaned.replace(/원$/, '');
+    if (!/^[0-9]+(\.[0-9]+)?$/.test(withoutWon)) {
+      return { valid: false, error: '올바른 금액을 입력해주세요.' };
+    }
+    const n = parseFloat(withoutWon);
+    if (isNaN(n) || n < 0) {
+      return { valid: false, error: '올바른 금액을 입력해주세요.' };
+    }
+    if (n >= 100000) {
+      return { valid: true, value: Math.round(n) };
+    } else {
+      return { valid: true, value: Math.round(n * 10000) };
+    }
+  }
+}
+

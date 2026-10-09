@@ -43,7 +43,7 @@
       </div>
       <h1 class="hero-title">육아휴직 급여 계산기 (2026)</h1>
       <p class="hero-subtitle">
-        6+6 부모함께육아휴직제 상한액 체계, 순차 사용 시 첫 번째 부모의 소급 정산 차액, 부부 가구 합산 수령액을 공식 산식으로 정밀 계산합니다.
+        6+6 부모함께육아휴직제 상한액 체계, 순차 사용 시 첫 번째 부모의 소급 정산 차액, 부부 가구 합산 수령액을 고용노동부 공개 기준으로 계산한 모의 금액입니다.
       </p>
       <div class="hero-citation">
         고용보험법 시행령 제95조·제95조의3 기준 | 사후지급금 폐지(100% 전액 지급) 반영
@@ -92,17 +92,18 @@
 
         <div class="form-group">
           <label for="wage1" class="form-label">
-            월 통상임금 <span id="wage1Preview" class="input-preview"></span>
+            월 통상임금 (만원) <span id="wage1Preview" class="input-preview"></span>
           </label>
-          <input type="text" id="wage1" class="form-input" placeholder="예: 3,500,000" inputmode="numeric">
+          <input type="text" id="wage1" class="form-input" placeholder="예: 300" inputmode="numeric">
+          <div id="wage1Hint" class="live-wage-hint">= 3,500,000원</div>
           <div class="quick-btns">
-            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="2500000">250만</button>
-            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="3000000">300만</button>
-            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="4000000">400만</button>
-            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="5000000">500만</button>
-            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="+500000">+50만</button>
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="250">250만</button>
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="300">300만</button>
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="400">400만</button>
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="500">500만</button>
+            <button type="button" class="btn-pill" data-target="wage1" data-quick-wage="+50">+50만</button>
           </div>
-          <p class="help-text">기본급 + 고정수당 등 근로기준법상 월 통상임금</p>
+          <p class="help-text">기본급 + 고정수당 등 근로기준법상 월 통상임금 (300 또는 300만원 입력 가능)</p>
         </div>
 
         <div class="form-group" style="margin-top: 18px;">
@@ -126,17 +127,18 @@
 
         <div class="form-group">
           <label for="wage2" class="form-label">
-            월 통상임금 <span id="wage2Preview" class="input-preview"></span>
+            월 통상임금 (만원) <span id="wage2Preview" class="input-preview"></span>
           </label>
-          <input type="text" id="wage2" class="form-input" placeholder="예: 3,500,000" inputmode="numeric">
+          <input type="text" id="wage2" class="form-input" placeholder="예: 300" inputmode="numeric">
+          <div id="wage2Hint" class="live-wage-hint">= 3,500,000원</div>
           <div class="quick-btns">
-            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="2500000">250만</button>
-            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="3000000">300만</button>
-            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="4000000">400만</button>
-            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="5000000">500만</button>
-            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="+500000">+50만</button>
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="250">250만</button>
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="300">300만</button>
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="400">400만</button>
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="500">500만</button>
+            <button type="button" class="btn-pill" data-target="wage2" data-quick-wage="+50">+50만</button>
           </div>
-          <p class="help-text">기본급 + 고정수당 등 근로기준법상 월 통상임금</p>
+          <p class="help-text">기본급 + 고정수당 등 근로기준법상 월 통상임금 (300 또는 300만원 입력 가능)</p>
         </div>
 
         <div class="form-group" style="margin-top: 18px;">
@@ -162,6 +164,11 @@
       </div>
       <ul id="verdictReasons" class="reasons-list"></ul>
     </section>
+
+    <!-- Visible Disclaimer Notice -->
+    <div class="notice-callout" role="note">
+      <span>ℹ️</span> <strong>참고용 모의계산입니다.</strong> 실제 지급액은 고용센터 심사와 일할 계산에 따라 달라질 수 있으며, 법적 효력이 없습니다. 정확한 금액은 <a href="https://www.work24.go.kr" target="_blank" rel="noopener noreferrer">고용24 모의계산</a> 또는 <strong>1350</strong>에서 확인하세요.
+    </div>
 
     <!-- Key Metrics Grid -->
     <section class="summary-grid summary-grid-3cols" aria-label="급여 요약 지표">
@@ -422,4 +429,6 @@
   <script type="module" src="./app.js"></script>
 </body>
 </html>
+
+
 

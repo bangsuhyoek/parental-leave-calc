@@ -3,6 +3,7 @@ import {
   calculate18MonthsDeadline,
   formatCurrency,
   formatManwon,
+  parseWageInput,
 } from './calc.js';
 
 // DOM 요소 캐시
@@ -15,12 +16,14 @@ const parent1Title = document.getElementById('parent1Title');
 
 const wage1Input = document.getElementById('wage1');
 const wage1Preview = document.getElementById('wage1Preview');
+const wage1Hint = document.getElementById('wage1Hint');
 const startDate1Input = document.getElementById('startDate1');
 const months1Slider = document.getElementById('months1Slider');
 const months1Number = document.getElementById('months1Number');
 
 const wage2Input = document.getElementById('wage2');
 const wage2Preview = document.getElementById('wage2Preview');
+const wage2Hint = document.getElementById('wage2Hint');
 const startDate2Input = document.getElementById('startDate2');
 const months2Slider = document.getElementById('months2Slider');
 const months2Number = document.getElementById('months2Number');
@@ -55,27 +58,14 @@ const compSpecialText = document.getElementById('compSpecialText');
 const compNormalText = document.getElementById('compNormalText');
 const compDiffText = document.getElementById('compDiffText');
 
-// 숫자 콤마 파싱 및 포맷
-function parseNumber(str) {
-  if (!str) return 0;
-  const num = parseInt(str.toString().replace(/[^0-9]/g, ''), 10);
-  return isNaN(num) ? 0 : num;
-}
-
-function formatWithCommas(num) {
-  if (!num) return '';
-  return num.toLocaleString('ko-KR');
-}
-
-// 기본값 설정 (오늘 기준 최근 출생 및 휴직일 계산)
+// 기본 날짜 설정
 function setDefaultDates() {
   const today = new Date();
   
   // 기본 자녀 생년월일: 약 3개월 전
   const birth = new Date(today.getFullYear(), today.getMonth() - 3, 1);
-  const birthStr = birth.toISOString().slice(0, 10);
   if (!childBirthDateInput.value) {
-    childBirthDateInput.value = birthStr;
+    childBirthDateInput.value = birth.toISOString().slice(0, 10);
   }
 
   // 부모 1 휴직 시작일: 약 2개월 전
@@ -91,7 +81,7 @@ function setDefaultDates() {
   }
 }
 
-// URL 쿼리 파라미터 읽기
+// URL 쿼리 파라미터 읽기 (이전 버전 및 새 버전 호환)
 function loadStateFromUrl() {
   const params = new URLSearchParams(window.location.search);
   
@@ -104,10 +94,14 @@ function loadStateFromUrl() {
   if (params.has('birth')) childBirthDateInput.value = params.get('birth');
   
   if (params.has('w1')) {
-    const w1 = parseNumber(params.get('w1'));
-    wage1Input.value = formatWithCommas(w1);
+    const parsed = parseWageInput(params.get('w1'));
+    if (parsed.valid) {
+      wage1Input.value = (parsed.value / 10000).toString();
+    } else {
+      wage1Input.value = '350';
+    }
   } else if (!wage1Input.value) {
-    wage1Input.value = '3,500,000';
+    wage1Input.value = '350';
   }
   
   if (params.has('s1')) startDate1Input.value = params.get('s1');
@@ -118,10 +112,14 @@ function loadStateFromUrl() {
   }
 
   if (params.has('w2')) {
-    const w2 = parseNumber(params.get('w2'));
-    wage2Input.value = formatWithCommas(w2);
+    const parsed = parseWageInput(params.get('w2'));
+    if (parsed.valid) {
+      wage2Input.value = (parsed.value / 10000).toString();
+    } else {
+      wage2Input.value = '350';
+    }
   } else if (!wage2Input.value) {
-    wage2Input.value = '3,500,000';
+    wage2Input.value = '350';
   }
 
   if (params.has('s2')) startDate2Input.value = params.get('s2');
@@ -133,21 +131,19 @@ function loadStateFromUrl() {
 }
 
 // URL 쿼리 파라미터 업데이트
-function saveStateToUrl() {
+function saveStateToUrl(wageWon1, wageWon2) {
   const currentMode = document.querySelector('input[name="mode"]:checked')?.value || 'couple';
   const params = new URLSearchParams();
   
   params.set('mode', currentMode);
   if (childBirthDateInput.value) params.set('birth', childBirthDateInput.value);
   
-  const w1 = parseNumber(wage1Input.value);
-  if (w1) params.set('w1', w1.toString());
+  if (wageWon1) params.set('w1', wageWon1.toString());
   if (startDate1Input.value) params.set('s1', startDate1Input.value);
   params.set('m1', months1Number.value);
 
   if (currentMode === 'couple') {
-    const w2 = parseNumber(wage2Input.value);
-    if (w2) params.set('w2', w2.toString());
+    if (wageWon2) params.set('w2', wageWon2.toString());
     if (startDate2Input.value) params.set('s2', startDate2Input.value);
     params.set('m2', months2Number.value);
   }
@@ -195,12 +191,53 @@ export function updateCalculation() {
     comparisonSection.style.display = 'none';
   }
 
-  const wage1 = parseNumber(wage1Input.value);
-  wage1Preview.textContent = wage1 > 0 ? '(' + formatManwon(wage1) + ')' : '';
-  const months1 = parseInt(months1Number.value, 10) || 12;
+  // 임금 입력값 검증 및 파싱
+  const p1 = parseWageInput(wage1Input.value);
+  let hasError = false;
 
-  const wage2 = parseNumber(wage2Input.value);
-  wage2Preview.textContent = wage2 > 0 ? '(' + formatManwon(wage2) + ')' : '';
+  if (p1.valid) {
+    wage1Hint.className = 'live-wage-hint';
+    wage1Hint.textContent = '= ' + formatCurrency(p1.value);
+    wage1Preview.textContent = '(' + formatManwon(p1.value) + ')';
+  } else {
+    wage1Hint.className = 'live-wage-error';
+    wage1Hint.textContent = '⚠️ ' + p1.error;
+    wage1Preview.textContent = '';
+    hasError = true;
+  }
+
+  let p2 = { valid: true, value: 0 };
+  if (mode === 'couple') {
+    p2 = parseWageInput(wage2Input.value);
+    if (p2.valid) {
+      wage2Hint.className = 'live-wage-hint';
+      wage2Hint.textContent = '= ' + formatCurrency(p2.value);
+      wage2Preview.textContent = '(' + formatManwon(p2.value) + ')';
+    } else {
+      wage2Hint.className = 'live-wage-error';
+      wage2Hint.textContent = '⚠️ ' + p2.error;
+      wage2Preview.textContent = '';
+      hasError = true;
+    }
+  }
+
+  if (hasError) {
+    // 유효하지 않은 입력값이면 계산을 중단하고 안내
+    verdictBadge.className = 'badge badge-warning';
+    verdictBadge.innerHTML = '<span>⚠️</span> 통상임금을 올바르게 입력해주세요.';
+    verdictReasons.innerHTML = '<li>통상임금 입력란에 300 또는 300만원 형식으로 숫자를 입력해주세요.</li>';
+    householdTotalEl.textContent = '-';
+    if (benefitGainEl) benefitGainEl.textContent = '-';
+    parent1TotalEl.textContent = '-';
+    parent2TotalEl.textContent = '-';
+    parent1ScheduleBody.innerHTML = '';
+    parent2ScheduleBody.innerHTML = '';
+    return;
+  }
+
+  const wage1 = p1.value;
+  const months1 = parseInt(months1Number.value, 10) || 12;
+  const wage2 = p2.value;
   const months2 = parseInt(months2Number.value, 10) || 12;
 
   const calcParams = {
@@ -327,7 +364,7 @@ export function updateCalculation() {
     }
   }
 
-  saveStateToUrl();
+  saveStateToUrl(wage1, wage2);
 }
 
 // 월차별 테이블 렌더링 헬퍼
@@ -401,11 +438,7 @@ function setupEventListeners() {
   childBirthDateInput.addEventListener('input', updateCalculation);
 
   // 부모 1
-  wage1Input.addEventListener('input', (e) => {
-    const raw = parseNumber(e.target.value);
-    e.target.value = formatWithCommas(raw);
-    updateCalculation();
-  });
+  wage1Input.addEventListener('input', updateCalculation);
   startDate1Input.addEventListener('input', updateCalculation);
   months1Slider.addEventListener('input', (e) => {
     months1Number.value = e.target.value;
@@ -417,11 +450,7 @@ function setupEventListeners() {
   });
 
   // 부모 2
-  wage2Input.addEventListener('input', (e) => {
-    const raw = parseNumber(e.target.value);
-    e.target.value = formatWithCommas(raw);
-    updateCalculation();
-  });
+  wage2Input.addEventListener('input', updateCalculation);
   startDate2Input.addEventListener('input', updateCalculation);
   months2Slider.addEventListener('input', (e) => {
     months2Number.value = e.target.value;
@@ -432,22 +461,24 @@ function setupEventListeners() {
     updateCalculation();
   });
 
-  // 빠른 금액 버튼 (+10만, +50만, +100만, 250만, 300만, 500만)
+  // 빠른 금액 버튼 (250, 300, 400, 500, +50)
   document.querySelectorAll('[data-quick-wage]').forEach(btn => {
     btn.addEventListener('click', () => {
       const targetId = btn.getAttribute('data-target');
       const inputEl = document.getElementById(targetId);
       const action = btn.getAttribute('data-quick-wage');
-      let current = parseNumber(inputEl.value);
+      
+      const parsed = parseWageInput(inputEl.value);
+      let currentManwon = parsed.valid ? Math.round(parsed.value / 10000) : 0;
 
       if (action.startsWith('+')) {
         const add = parseInt(action.slice(1), 10);
-        current += add;
+        currentManwon += add;
       } else {
-        current = parseInt(action, 10);
+        currentManwon = parseInt(action, 10);
       }
 
-      inputEl.value = formatWithCommas(current);
+      inputEl.value = currentManwon.toString();
       updateCalculation();
     });
   });
@@ -458,7 +489,6 @@ function setupEventListeners() {
       await navigator.clipboard.writeText(window.location.href);
       showToast('결과 링크가 클립보드에 복사되었습니다!');
     } catch {
-      // Fallback
       const tempInput = document.createElement('input');
       tempInput.value = window.location.href;
       document.body.appendChild(tempInput);

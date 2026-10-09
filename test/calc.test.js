@@ -8,6 +8,7 @@ import {
   isWithin18Months,
   calculate18MonthsDeadline,
   FLOOR_BENEFIT,
+  parseWageInput,
 } from '../calc.js';
 
 test('1. 일반 육아휴직 1인 - 통상임금 300만원, 12개월 (예시 1)', () => {
@@ -266,5 +267,39 @@ test('11. Opus 보정 검증 (c): 둘 다 500만원, A=12개월, B=1개월', () 
 
   // 1개월차 6+6 상한도 250만, 일반 상한도 250만이므로 소급 정산 차액은 0원
   assert.equal(result.parentA.retroactiveTopUp, 0);
+});
+
+
+
+test('12. 월 통상임금 파싱 단위 테스트 - 만원 단위 및 원 단위 입력 지원', () => {
+  // 정상 케이스: "300", "300만원", "3,000,000", "3000000" 모두 300만원(3,000,000원)으로 해석
+  const r1 = parseWageInput('300');
+  assert.equal(r1.valid, true);
+  assert.equal(r1.value, 3000000);
+
+  const r2 = parseWageInput('300만원');
+  assert.equal(r2.valid, true);
+  assert.equal(r2.value, 3000000);
+
+  const r3 = parseWageInput('3,000,000');
+  assert.equal(r3.valid, true);
+  assert.equal(r3.value, 3000000);
+
+  const r4 = parseWageInput('3000000');
+  assert.equal(r4.valid, true);
+  assert.equal(r4.value, 3000000);
+
+  // 비정상 케이스: "", "-5", "abc" -> validation message 반환
+  const rEmpty = parseWageInput('');
+  assert.equal(rEmpty.valid, false);
+  assert.ok(rEmpty.error && rEmpty.error.length > 0);
+
+  const rNeg = parseWageInput('-5');
+  assert.equal(rNeg.valid, false);
+  assert.ok(rNeg.error && rNeg.error.length > 0);
+
+  const rAbc = parseWageInput('abc');
+  assert.equal(rAbc.valid, false);
+  assert.ok(rAbc.error && rAbc.error.length > 0);
 });
 
